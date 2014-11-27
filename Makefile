@@ -10,10 +10,10 @@
 #    CFLAGS = -g -DSYSV -traditional -traditional-cpp -Wid-clash-8
 #    CFLAGS = -O -DSYSV
 
-CC = clang
-CFLAGS = -O -ansi -pedantic -DBSD -DCMDLINE
+CC = gcc -Wall -Wextra
+CFLAGS = -O -ansi -pedantic
 
-all :	miniscm
+all: miniscm
 
 miniscm : miniscm.c Makefile
 	$(CC) $(CFLAGS) -o miniscm miniscm.c
