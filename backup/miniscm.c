@@ -52,7 +52,7 @@
 
 
 /* cell structure */
-typedef struct cell
+struct cell
 {
     unsigned short _flag;
     union
@@ -74,9 +74,10 @@ typedef struct cell
             struct cell* _cdr;
         } _cons;
     } _object;
-} cell;
 
-typedef cell* pointer;
+};
+
+typedef struct cell* pointer;
 
 #define T_STRING         1    /* 0000000000000001 */
 #define T_NUMBER         2    /* 0000000000000010 */
@@ -94,38 +95,38 @@ typedef cell* pointer;
 #define UNMARK       32767    /* 0111111111111111 */
 
 /* macros for cell operations */
-#define scm_type(p)         ((p)->_flag)
-#define scm_isstring(p)     (scm_type(p)&T_STRING)
+#define type(p)         ((p)->_flag)
+#define isstring(p)     (type(p)&T_STRING)
 #define strvalue(p)     ((p)->_object._string._svalue)
 #define keynum(p)       ((p)->_object._string._keynum)
-#define isnumber(p)     (scm_type(p)&T_NUMBER)
+#define isnumber(p)     (type(p)&T_NUMBER)
 #define ivalue(p)       ((p)->_object._number._ivalue)
-#define ispair(p)       (scm_type(p)&T_PAIR)
+#define ispair(p)       (type(p)&T_PAIR)
 #define car(p)          ((p)->_object._cons._car)
 #define cdr(p)          ((p)->_object._cons._cdr)
-#define issymbol(p)     (scm_type(p)&T_SYMBOL)
+#define issymbol(p)     (type(p)&T_SYMBOL)
 #define symname(p)      strvalue(car(p))
-#define hasprop(p)      (scm_type(p)&T_SYMBOL)
+#define hasprop(p)      (type(p)&T_SYMBOL)
 #define symprop(p)      cdr(p)
-#define issyntax(p)     (scm_type(p)&T_SYNTAX)
-#define isproc(p)       (scm_type(p)&T_PROC)
+#define issyntax(p)     (type(p)&T_SYNTAX)
+#define isproc(p)       (type(p)&T_PROC)
 #define syntaxname(p)   strvalue(car(p))
 #define syntaxnum(p)    keynum(car(p))
 #define procnum(p)      ivalue(p)
-#define isclosure(p)    (scm_type(p)&T_CLOSURE)
-#define ismacro(p)      (scm_type(p)&T_MACRO)
+#define isclosure(p)    (type(p)&T_CLOSURE)
+#define ismacro(p)      (type(p)&T_MACRO)
 #define closure_code(p) car(p)
 #define closure_env(p)  cdr(p)
-#define iscontinuation(p) (scm_type(p)&T_CONTINUATION)
+#define iscontinuation(p) (type(p)&T_CONTINUATION)
 #define cont_dump(p)    cdr(p)
-#define ispromise(p)    (scm_type(p)&T_PROMISE)
-#define setpromise(p)   scm_type(p) |= T_PROMISE
-#define isatom(p)       (scm_type(p)&T_ATOM)
-#define setatom(p)      scm_type(p) |= T_ATOM
-#define clratom(p)      scm_type(p) &= CLRATOM
-#define ismark(p)       (scm_type(p)&MARK)
-#define setmark(p)      scm_type(p) |= MARK
-#define clrmark(p)      scm_type(p) &= UNMARK
+#define ispromise(p)    (type(p)&T_PROMISE)
+#define setpromise(p)   type(p) |= T_PROMISE
+#define isatom(p)       (type(p)&T_ATOM)
+#define setatom(p)      type(p) |= T_ATOM
+#define clratom(p)      type(p) &= CLRATOM
+#define ismark(p)       (type(p)&MARK)
+#define setmark(p)      type(p) |= MARK
+#define clrmark(p)      type(p) &= UNMARK
 #define caar(p)         car(car(p))
 #define cadr(p)         car(cdr(p))
 #define cdar(p)         cdr(car(p))
@@ -135,32 +136,6 @@ typedef cell* pointer;
 #define cadaar(p)       car(cdr(car(car(p))))
 #define cadddr(p)       car(cdr(cdr(cdr(p))))
 #define cddddr(p)       cdr(cdr(cdr(cdr(p))))
-
-/* --------- */
-#define TOK_LPAREN  0
-#define TOK_RPAREN  1
-#define TOK_DOT     2
-#define TOK_ATOM    3
-#define TOK_QUOTE   4
-#define TOK_COMMENT 5
-#define TOK_DQUOTE  6
-#define TOK_BQUOTE  7
-#define TOK_COMMA   8
-#define TOK_ATMARK  9
-#define TOK_SHARP   10
-#define LINESIZE 1024
-
-char    linebuff[LINESIZE];
-char    strbuff[256];
-char*   currentline = linebuff;
-char*   endline = linebuff;
-
-
-static FILE* tmpfp;
-static int tok;
-static int print_flag;
-static pointer value;
-static short operator;
 
 /* arrays for segments */
 pointer cell_seg[CELL_NSEGMENT];
@@ -173,11 +148,11 @@ pointer args;            /* register for arguments of function */
 pointer envir;            /* stack register for current environment */
 pointer code;            /* register for current code */
 pointer dump;            /* stack register for next evaluation */
-cell _NIL;
+struct cell _NIL;
 pointer NIL = &_NIL;        /* special cell representing empty cell */
-cell _T;
+struct cell _T;
 pointer T = &_T;        /* special cell representing #t */
-cell _F;
+struct cell _F;
 pointer F = &_F;        /* special cell representing #f */
 pointer oblist = &_NIL;        /* pointer to symbol table */
 pointer global_env;        /* pointer to global environment */
@@ -204,114 +179,6 @@ void init_globals();
 int isdelim(char* s, char c);
 
 
-/* operator code */
-
-#define    OP_LOAD            0
-#define    OP_T0LVL        1
-#define    OP_T1LVL        2
-#define    OP_READ            3
-#define    OP_VALUEPRINT        4
-#define    OP_EVAL            5
-#define    OP_E0ARGS        6
-#define    OP_E1ARGS        7
-#define    OP_APPLY        8
-#define    OP_DOMACRO        9
-#define    OP_LAMBDA        10
-#define    OP_QUOTE        11
-#define    OP_DEF0            12
-#define    OP_DEF1            13
-#define    OP_BEGIN        14
-#define    OP_IF0            15
-#define    OP_IF1            16
-#define    OP_SET0            17
-#define    OP_SET1            18
-#define    OP_LET0            19
-#define    OP_LET1            20
-#define    OP_LET2            21
-#define    OP_LET0AST        22
-#define    OP_LET1AST        23
-#define    OP_LET2AST        24
-#define    OP_LET0REC        25
-#define    OP_LET1REC        26
-#define    OP_LET2REC        27
-#define    OP_COND0        28
-#define    OP_COND1        29
-#define    OP_DELAY        30
-#define    OP_AND0            31
-#define    OP_AND1            32
-#define    OP_OR0            33
-#define    OP_OR1            34
-#define    OP_C0STREAM        35
-#define    OP_C1STREAM        36
-#define    OP_0MACRO        37
-#define    OP_1MACRO        38
-#define    OP_CASE0        39
-#define    OP_CASE1        40
-#define    OP_CASE2        41
-#define    OP_PEVAL        42
-#define    OP_PAPPLY        43
-#define    OP_CONTINUATION        44
-#define    OP_ADD            45
-#define    OP_SUB            46
-#define    OP_MUL            47
-#define    OP_DIV            48
-#define    OP_REM            49
-#define    OP_CAR            50
-#define    OP_CDR            51
-#define    OP_CONS            52
-#define    OP_SETCAR        53
-#define    OP_SETCDR        54
-#define    OP_NOT            55
-#define    OP_BOOL            56
-#define    OP_NULL            57
-#define    OP_ZEROP        58
-#define    OP_POSP            59
-#define    OP_NEGP            60
-#define    OP_NEQ            61
-#define    OP_LESS            62
-#define    OP_GRE            63
-#define    OP_LEQ            64
-#define    OP_GEQ            65
-#define    OP_SYMBOL        66
-#define    OP_NUMBER        67
-#define    OP_STRING        68
-#define    OP_PROC            69
-#define    OP_PAIR            70
-#define    OP_EQ            71
-#define    OP_EQV            72
-#define    OP_FORCE        73
-#define    OP_WRITE        74
-#define    OP_DISPLAY        75
-#define    OP_NEWLINE        76
-#define    OP_ERR0            77
-#define    OP_ERR1            78
-#define    OP_REVERSE        79
-#define    OP_APPEND        80
-#define    OP_PUT            81
-#define    OP_GET            82
-#define    OP_QUIT            83
-#define    OP_GC            84
-#define    OP_GCVERB        85
-#define    OP_NEWSEGMENT        86
-#define    OP_RDSEXPR        87
-#define    OP_RDLIST        88
-#define    OP_RDDOT        89
-#define    OP_RDQUOTE        90
-#define    OP_RDQQUOTE        91
-#define    OP_RDUNQUOTE        92
-#define    OP_RDUQTSP        93
-#define    OP_P0LIST        94
-#define    OP_P1LIST        95
-#define    OP_LIST_LENGTH        96
-#define    OP_ASSQ            97
-#define    OP_PRINT_WIDTH        98
-#define    OP_P0_WIDTH        99
-#define    OP_P1_WIDTH        100
-#define    OP_GET_CLOSURE        101
-#define    OP_CLOSUREP        102
-#define    OP_MACROP        103
-
-
 /* allocate new cell segment */
 int alloc_cellseg(int n)
 {
@@ -324,7 +191,7 @@ int alloc_cellseg(int n)
         {
             return k;
         }
-        p = (pointer) malloc(CELL_SEGSIZE * sizeof(cell));
+        p = (pointer) malloc(CELL_SEGSIZE * sizeof(struct cell));
         if(p == (pointer) 0)
         {
             return k;
@@ -333,11 +200,11 @@ int alloc_cellseg(int n)
         fcells += CELL_SEGSIZE;
         for(i = 0; i < CELL_SEGSIZE - 1; i++, p++)
         {
-            scm_type(p) = 0;
+            type(p) = 0;
             car(p) = NIL;
             cdr(p) = p + 1;
         }
-        scm_type(p) = 0;
+        type(p) = 0;
         car(p) = NIL;
         cdr(p) = free_cell;
         free_cell = cell_seg[last_cell_seg];
@@ -426,7 +293,7 @@ pointer cons(register pointer a, register pointer b)
 {
     register pointer x;
     x = get_cell(a, b);
-    scm_type(x) = T_PAIR;
+    type(x) = T_PAIR;
     car(x) = a;
     cdr(x) = b;
     return (x);
@@ -437,7 +304,7 @@ pointer mk_number(register long num)
 {
     register pointer x;
     x = get_cell(NIL, NIL);
-    scm_type(x) = (T_NUMBER | T_ATOM);
+    type(x) = (T_NUMBER | T_ATOM);
     ivalue(x) = num;
     return (x);
 }
@@ -483,7 +350,7 @@ pointer mk_string(char* str)
 {
     register pointer x = get_cell(NIL, NIL);
     strvalue(x) = store_string(str);
-    scm_type(x) = (T_STRING | T_ATOM);
+    type(x) = (T_STRING | T_ATOM);
     keynum(x) = (short)(-1);
     return (x);
 }
@@ -507,7 +374,7 @@ pointer mk_symbol(char* name)
     else
     {
         x = cons(mk_string(name), NIL);
-        scm_type(x) = T_SYMBOL;
+        type(x) = T_SYMBOL;
         oblist = cons(x, oblist);
         return (x);
     }
@@ -667,7 +534,7 @@ void gc(register pointer a, register pointer b)
             }
             else
             {
-                scm_type(p) = 0;
+                type(p) = 0;
                 cdr(p) = free_cell;
                 car(p) = NIL;
                 free_cell = p;
@@ -683,6 +550,24 @@ void gc(register pointer a, register pointer b)
 
 
 /* ========== Rootines for Reading ========== */
+
+#define TOK_LPAREN  0
+#define TOK_RPAREN  1
+#define TOK_DOT     2
+#define TOK_ATOM    3
+#define TOK_QUOTE   4
+#define TOK_COMMENT 5
+#define TOK_DQUOTE  6
+#define TOK_BQUOTE  7
+#define TOK_COMMA   8
+#define TOK_ATMARK  9
+#define TOK_SHARP   10
+#define LINESIZE 1024
+
+char    linebuff[LINESIZE];
+char    strbuff[256];
+char*   currentline = linebuff;
+char*   endline = linebuff;
 
 /* get new character from input file */
 int inchar()
@@ -887,7 +772,7 @@ int printatom(pointer l, int f)
         p = strbuff;
         sprintf(p, "%ld", ivalue(l));
     }
-    else if(scm_isstring(l))
+    else if(isstring(l))
     {
         if(!f)
         {
@@ -934,7 +819,7 @@ int printatom(pointer l, int f)
 pointer mk_closure(register pointer c, register pointer e)
 {
     register pointer x = get_cell(c, e);
-    scm_type(x) = T_CLOSURE;
+    type(x) = T_CLOSURE;
     car(x) = c;
     cdr(x) = e;
     return (x);
@@ -944,7 +829,7 @@ pointer mk_closure(register pointer c, register pointer e)
 pointer mk_continuation(register pointer d)
 {
     register pointer x = get_cell(NIL, d);
-    scm_type(x) = T_CONTINUATION;
+    type(x) = T_CONTINUATION;
     cont_dump(x) = d;
     return (x);
 }
@@ -1002,9 +887,9 @@ pointer append(register pointer a, register pointer b)
 /* equivalence of atoms */
 int eqv(register pointer a, register pointer b)
 {
-    if(scm_isstring(a))
+    if(isstring(a))
     {
-        if(scm_isstring(b))
+        if(isstring(b))
         {
             return (strvalue(a) == strvalue(b));
         }
@@ -1081,6 +966,118 @@ int eqv(register pointer a, register pointer b)
 #define s_retbool(tf)    s_return((tf) ? T : F)
 
 /* ========== Evaluation Cycle ========== */
+/* operator code */
+
+#define    OP_LOAD            0
+#define    OP_T0LVL        1
+#define    OP_T1LVL        2
+#define    OP_READ            3
+#define    OP_VALUEPRINT        4
+#define    OP_EVAL            5
+#define    OP_E0ARGS        6
+#define    OP_E1ARGS        7
+#define    OP_APPLY        8
+#define    OP_DOMACRO        9
+#define    OP_LAMBDA        10
+#define    OP_QUOTE        11
+#define    OP_DEF0            12
+#define    OP_DEF1            13
+#define    OP_BEGIN        14
+#define    OP_IF0            15
+#define    OP_IF1            16
+#define    OP_SET0            17
+#define    OP_SET1            18
+#define    OP_LET0            19
+#define    OP_LET1            20
+#define    OP_LET2            21
+#define    OP_LET0AST        22
+#define    OP_LET1AST        23
+#define    OP_LET2AST        24
+#define    OP_LET0REC        25
+#define    OP_LET1REC        26
+#define    OP_LET2REC        27
+#define    OP_COND0        28
+#define    OP_COND1        29
+#define    OP_DELAY        30
+#define    OP_AND0            31
+#define    OP_AND1            32
+#define    OP_OR0            33
+#define    OP_OR1            34
+#define    OP_C0STREAM        35
+#define    OP_C1STREAM        36
+#define    OP_0MACRO        37
+#define    OP_1MACRO        38
+#define    OP_CASE0        39
+#define    OP_CASE1        40
+#define    OP_CASE2        41
+#define    OP_PEVAL        42
+#define    OP_PAPPLY        43
+#define    OP_CONTINUATION        44
+#define    OP_ADD            45
+#define    OP_SUB            46
+#define    OP_MUL            47
+#define    OP_DIV            48
+#define    OP_REM            49
+#define    OP_CAR            50
+#define    OP_CDR            51
+#define    OP_CONS            52
+#define    OP_SETCAR        53
+#define    OP_SETCDR        54
+#define    OP_NOT            55
+#define    OP_BOOL            56
+#define    OP_NULL            57
+#define    OP_ZEROP        58
+#define    OP_POSP            59
+#define    OP_NEGP            60
+#define    OP_NEQ            61
+#define    OP_LESS            62
+#define    OP_GRE            63
+#define    OP_LEQ            64
+#define    OP_GEQ            65
+#define    OP_SYMBOL        66
+#define    OP_NUMBER        67
+#define    OP_STRING        68
+#define    OP_PROC            69
+#define    OP_PAIR            70
+#define    OP_EQ            71
+#define    OP_EQV            72
+#define    OP_FORCE        73
+#define    OP_WRITE        74
+#define    OP_DISPLAY        75
+#define    OP_NEWLINE        76
+#define    OP_ERR0            77
+#define    OP_ERR1            78
+#define    OP_REVERSE        79
+#define    OP_APPEND        80
+#define    OP_PUT            81
+#define    OP_GET            82
+#define    OP_QUIT            83
+#define    OP_GC            84
+#define    OP_GCVERB        85
+#define    OP_NEWSEGMENT        86
+#define    OP_RDSEXPR        87
+#define    OP_RDLIST        88
+#define    OP_RDDOT        89
+#define    OP_RDQUOTE        90
+#define    OP_RDQQUOTE        91
+#define    OP_RDUNQUOTE        92
+#define    OP_RDUQTSP        93
+#define    OP_P0LIST        94
+#define    OP_P1LIST        95
+#define    OP_LIST_LENGTH        96
+#define    OP_ASSQ            97
+#define    OP_PRINT_WIDTH        98
+#define    OP_P0_WIDTH        99
+#define    OP_P1_WIDTH        100
+#define    OP_GET_CLOSURE        101
+#define    OP_CLOSUREP        102
+#define    OP_MACROP        103
+
+static FILE* tmpfp;
+static int tok;
+static int print_flag;
+static pointer value;
+static short operator;
 
 pointer opexe_0(register short op)
 {
@@ -1088,7 +1085,7 @@ pointer opexe_0(register short op)
     switch(op)
     {
         case OP_LOAD:        /* load */
-            if(!scm_isstring(car(args)))
+            if(!isstring(car(args)))
             {
                 Error_0("load -- argument is not string");
             }
@@ -1561,7 +1558,7 @@ pointer opexe_1(register short op)
             s_save(OP_1MACRO, NIL, x);
             s_goto(OP_EVAL);
         case OP_1MACRO:    /* macro */
-            scm_type(value) |= T_MACRO;
+            type(value) |= T_MACRO;
             for(x = car(envir); x != NIL; x = cdr(x))
                 if(caar(x) == code)
                 {
@@ -1775,7 +1772,7 @@ pointer opexe_3(register short op)
         case OP_NUMBER:    /* number? */
             s_retbool(isnumber(car(args)));
         case OP_STRING:    /* string? */
-            s_retbool(scm_isstring(car(args)));
+            s_retbool(isstring(car(args)));
         case OP_PROC:        /* procedure? */
             /*--
             * continuation should be procedure by the example
@@ -1826,7 +1823,7 @@ pointer opexe_4(register short op)
             fprintf(outfp, "\n");
             s_return(T);
         case OP_ERR0:    /* error */
-            if(!scm_isstring(car(args)))
+            if(!isstring(car(args)))
             {
                 Error_0("error -- first argument must be string");
             }
@@ -2352,7 +2349,7 @@ void mk_syntax(unsigned short op, char* name)
 {
     pointer x;
     x = cons(mk_string(name), NIL);
-    scm_type(x) = (T_SYNTAX | T_SYMBOL);
+    type(x) = (T_SYNTAX | T_SYMBOL);
     syntaxnum(x) = op;
     oblist = cons(x, oblist);
 }
@@ -2362,7 +2359,7 @@ void mk_proc(unsigned short op, char* name)
     pointer x, y;
     x = mk_symbol(name);
     y = get_cell(NIL, NIL);
-    scm_type(y) = (T_PROC | T_ATOM);
+    type(y) = (T_PROC | T_ATOM);
     ivalue(y) = (long) op;
     car(global_env) = cons(cons(x, y), car(global_env));
 }
@@ -2374,13 +2371,13 @@ void init_vars_global()
     infp = stdin;
     outfp = stdout;
     /* init NIL */
-    scm_type(NIL) = (T_ATOM | MARK);
+    type(NIL) = (T_ATOM | MARK);
     car(NIL) = cdr(NIL) = NIL;
     /* init T */
-    scm_type(T) = (T_ATOM | MARK);
+    type(T) = (T_ATOM | MARK);
     car(T) = cdr(T) = T;
     /* init F */
-    scm_type(F) = (T_ATOM | MARK);
+    type(F) = (T_ATOM | MARK);
     car(F) = cdr(F) = F;
     /* init global_env */
     global_env = cons(NIL, NIL);
@@ -2507,10 +2504,9 @@ Error(const char* fmt, const char* a, const char* b, const char* c)
 
 int main(int argc, char** argv)
 {
-    short i;
-    short op;
-    op = (short) OP_LOAD;
-    for(i =1; i < argc; i++)
+    short   i;
+    short   op = (short) OP_LOAD;
+    for(i = 1; i < argc; i++)
     {
         if(strcmp(argv[i], "-e") == 0)
         {
@@ -2527,7 +2523,9 @@ int main(int argc, char** argv)
     }
     init_scheme();
     args = cons(mk_string(InitFile), NIL);
+#ifdef USE_SETJMP
     op = setjmp(error_jmp);
+#endif
     Eval_Cycle(op);
     exit(0);
 }

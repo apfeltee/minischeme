@@ -10,8 +10,8 @@
 #    CFLAGS = -g -DSYSV -traditional -traditional-cpp -Wid-clash-8
 #    CFLAGS = -O -DSYSV
 
-CC ?= gcc
-CFLAGS ?= -O -ansi -pedantic -DBSD -DCMDLINE
+CC = clang
+CFLAGS = -O -ansi -pedantic -DBSD -DCMDLINE
 
 all :	miniscm
 
